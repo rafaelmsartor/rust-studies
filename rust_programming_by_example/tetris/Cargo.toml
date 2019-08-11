@@ -9,6 +9,7 @@ build = "build.rs"
 
 [dependencies]
 sdl2 = "0.30.0"
+rand = "0.3"
 
 [features]
 default = ["sdl2/image"]
