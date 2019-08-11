@@ -1,6 +1,7 @@
-/target
+**/target
 **/*.rs.bk
-/*.dll
+**/*.dll
+**/Cargo.lock
 
 gnu-mingw
 msvc
