@@ -2,11 +2,11 @@
 use crate::tetrimino::Tetrimino;
 
 pub struct Tetris {
-    game_map: Vec<Vec<u8>>,
+    pub game_map: Vec<Vec<u8>>,
     current_level: u32,
     score: u32,
     nb_lines: u32,
-    current_piece: Option<Tetrimino>,
+    pub current_piece: Option<Tetrimino>,
 }
 
 impl Tetris {
@@ -47,7 +47,7 @@ impl Tetris {
         }
     }
 
-    fn make_permanent(&mut self) {
+    pub fn make_permanent(&mut self) {
         if let Some(ref mut piece) = self.current_piece {
             let mut shift_y = 0;
 

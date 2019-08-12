@@ -1,6 +1,9 @@
 extern crate sdl2;
 
 mod tetrimino;
+mod game_board;
+
+use game_board::Tetris;
 
 use sdl2::event::Event;
 use sdl2::image::{LoadTexture, INIT_JPG, INIT_PNG};
@@ -8,7 +11,7 @@ use sdl2::keyboard::Keycode;
 use sdl2::pixels::Color;
 use sdl2::render::TextureCreator;
 
-use std::time::Duration;
+use std::time::{Duration, SystemTime};
 
 use std::fs::File;
 use std::io::{self, Read, Write};
@@ -62,6 +65,57 @@ fn load_highscores_and_lines() -> Option<(Vec<u32>, Vec<u32>)> {
     }
 }
 
+fn handle_events(tetris: &mut Tetris, quit: &mut bool, timer: &mut SystemTime, event_pump: &mut sdl2::EventPump) -> bool {
+    let mut make_permanent = false;
+    if let Some(ref mut piece) = tetris.current_piece {
+        let mut tmp_x = piece.x;
+        let mut tmp_y = piece.y;
+
+        for event in event_pump.poll_iter() {
+            match event {
+                Event::Quit |
+                Event::KeyDown {keycode: Some(Keycode::Escape), ..} => {
+                    *quit = true;
+                    break
+                },
+                Event::KeyDown {keycode: Some(Keycode::Down), ..} => {
+                    *timer = SystemTime::now();
+                    tmp_y += 1;
+                },
+                Event::KeyDown {keycode: Some(Keycode::Right), ..} => {
+                     tmp_x += 1;
+                },
+                Event::KeyDown {keycode: Some(Keycode::Left), ..} => {
+                    tmp_x -= 1;
+                },
+                Event::KeyDown {keycode: Some(Keycode::Up), ..} => {
+                    piece.rotate(&tetris.game_map);
+                },
+                Event::KeyDown {keycode: Some(Keycode::Space), ..} => {
+                    let x = piece.x;
+                    let mut y = piece.y;
+                    while piece.change_position(&tetris.game_map, x, y + 1) {
+                        y += 1;
+                    }
+                    make_permanent = true;
+                },
+                _ => {}
+            }
+        }
+        if !make_permanent {
+            if !piece.change_position(&tetris.game_map, tmp_x, tmp_y)
+                && tmp_y != piece.y {
+                make_permanent = true;
+            }
+        }
+    }
+    if make_permanent {
+        tetris.make_permanent();
+        *time = SystemTime::now();
+    }
+    make_permanent
+}
+
 fn main() {
     let sdl_context = sdl2::init().expect("SDL initialization failed");
     let video_subsystem = sdl_context
@@ -92,17 +146,7 @@ fn main() {
         .expect("Failed to get SDL event pump");
 
     'running: loop {
-        for event in event_pump.poll_iter() {
-            match event {
-                Event::Quit { .. }
-                | Event::KeyDown {
-                    keycode: Some(Keycode::Escape),
-                    ..
-                } => break 'running,
-                _ => {}
-            };
-        }
-
+        //handle_events()
         canvas.set_draw_color(Color::RGB(0, 0, 0));
         canvas.clear();
         canvas

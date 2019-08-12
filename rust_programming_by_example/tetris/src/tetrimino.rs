@@ -5,10 +5,10 @@ type Piece = Vec<Vec<u8>>;
 type States = Vec<Piece>;
 
 pub struct Tetrimino {
-    states: States,
-    x: isize,
-    y: usize,
-    current_state: u8,
+    pub states: States,
+    pub x: isize,
+    pub y: usize,
+    pub current_state: u8,
 }
 
 trait TetriminoGenerator {
