@@ -4,6 +4,7 @@ mod tetrimino;
 mod game_board;
 
 use game_board::Tetris;
+use game_board::LEVEL_TIMES;
 
 use sdl2::event::Event;
 use sdl2::image::{LoadTexture, INIT_JPG, INIT_PNG};
@@ -74,7 +75,7 @@ fn handle_events(tetris: &mut Tetris, quit: &mut bool, timer: &mut SystemTime, e
 
         for event in event_pump.poll_iter() {
             match event {
-                Event::Quit |
+                Event::Quit {..} |
                 Event::KeyDown {keycode: Some(Keycode::Escape), ..} => {
                     *quit = true;
                     break
@@ -112,7 +113,7 @@ fn handle_events(tetris: &mut Tetris, quit: &mut bool, timer: &mut SystemTime, e
     }
     if make_permanent {
         tetris.make_permanent();
-        *time = SystemTime::now();
+        *timer = SystemTime::now();
     }
     make_permanent
 }
@@ -124,6 +125,15 @@ fn print_information(tetris: &Tetris) {
     println!("Current level:   {}", tetris.current_level);
 }
 
+fn is_time_over(tetris: &Tetris, timer: &SystemTime) -> bool{
+    match timer.elapsed() {
+        Ok(elapsed) => {
+            let millis = elapsed.as_millis();
+            millis > LEVEL_TIMES[tetris.current_level as usize] as u128
+        },
+        Err(_) => false,
+    }
+}
 
 fn main() {
     let sdl_context = sdl2::init().expect("SDL initialization failed");
@@ -158,10 +168,7 @@ fn main() {
     let mut timer = SystemTime::now();
 
     loop {
-        if match timer.elapsed() {
-            Ok(elapsed) => elapsed.as_secs() >= 1,
-            Err(_) => false,
-        } {
+        if is_time_over(&tetris, &timer){
             let mut make_permanent = false;
             if let Some(ref mut piece) = tetris.current_piece {
                 let x = piece.x;
@@ -181,7 +188,7 @@ fn main() {
                 print_information(&tetris);
                 break
             }
-            tetris.current_piece = Some(currrent_piece );
+            tetris.current_piece = Some(current_piece);
         }
 
         let mut quit = false;
@@ -192,7 +199,7 @@ fn main() {
         }
 
         if quit {
-            print_game_informatio(&tetris);
+            print_information(&tetris);
             break
         }
 

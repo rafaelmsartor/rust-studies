@@ -1,16 +1,21 @@
 
 use crate::tetrimino::Tetrimino;
 
+// time intervals between piece movements, changes with level increase
+pub const LEVEL_TIMES: [u32; 10] = [1000, 850, 700, 600, 500, 400, 300, 250, 221, 190];
+// number of lines necessary to pass each level
+const LEVEL_LINES: [u32; 10] = [  20,  40,  60,  80, 100, 120, 140, 160, 180, 200];
+
 pub struct Tetris {
     pub game_map: Vec<Vec<u8>>,
-    current_level: u32,
-    score: u32,
-    nb_lines: u32,
+    pub current_level: u32,
+    pub score: u32,
+    pub nb_lines: u32,
     pub current_piece: Option<Tetrimino>,
 }
 
 impl Tetris {
-    fn new() -> Tetris {
+    pub fn new() -> Tetris {
         let mut game_map = Vec::new();
         for _ in 0..16 {
             game_map.push(vec![0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
@@ -27,6 +32,7 @@ impl Tetris {
 
     fn check_lines(&mut self) {
         let mut y = 0;
+        let mut score_add = 0;
 
         while y < self.game_map.len() {
             let mut complete = true;
@@ -37,17 +43,24 @@ impl Tetris {
                 }
             }
             if complete {
+                score_add += self.current_level;
                 self.game_map.remove(y);
                 y -= 1;
             }
             y += 1;
         }
+        if self.game_map.len() == 0 {
+            score_add += 1000;
+        }
+        self.update_score(score_add);
         while self.game_map.len() < 16 {
+            self.increase_line();
             self.game_map.insert(0, vec![0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
         }
     }
 
     pub fn make_permanent(&mut self) {
+        let mut to_add = 0;
         if let Some(ref mut piece) = self.current_piece {
             let mut shift_y = 0;
 
@@ -67,10 +80,21 @@ impl Tetris {
                 }
                 shift_y += 1;
             }
+            to_add += self.current_level;
         }
+        self.update_score(to_add);
         self.check_lines();
         self.current_piece = None;
     }
 
+    fn update_score(&mut self, to_add: u32) {
+        self.score += to_add;
+    }
 
+    fn increase_line(&mut self) {
+        self.nb_lines += 1;
+        if self.nb_lines > LEVEL_LINES[self.current_level as usize - 1] {
+            self.current_level += 1;
+        }
+    }
 }
