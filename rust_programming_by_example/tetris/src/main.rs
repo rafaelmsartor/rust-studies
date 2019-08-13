@@ -15,6 +15,7 @@ use std::time::{Duration, SystemTime};
 
 use std::fs::File;
 use std::io::{self, Read, Write};
+use crate::tetrimino::create_new_tetrimino;
 
 fn write_to_file(contents: String, file_name: &str) -> io::Result<()> {
     let mut f = File::create(file_name)?;
@@ -116,6 +117,14 @@ fn handle_events(tetris: &mut Tetris, quit: &mut bool, timer: &mut SystemTime, e
     make_permanent
 }
 
+fn print_information(tetris: &Tetris) {
+    println!("Game over!");
+    println!("Score:           {}", tetris.score);
+    println!("Number of lines: {}", tetris.nb_lines);
+    println!("Current level:   {}", tetris.current_level);
+}
+
+
 fn main() {
     let sdl_context = sdl2::init().expect("SDL initialization failed");
     let video_subsystem = sdl_context
@@ -145,14 +154,50 @@ fn main() {
         .event_pump()
         .expect("Failed to get SDL event pump");
 
-    'running: loop {
-        //handle_events()
-        canvas.set_draw_color(Color::RGB(0, 0, 0));
-        canvas.clear();
-        canvas
-            .copy(&image_texture, None, None)
-            .expect("Render failed");
-        canvas.present();
+    let mut tetris = Tetris::new();
+    let mut timer = SystemTime::now();
+
+    loop {
+        if match timer.elapsed() {
+            Ok(elapsed) => elapsed.as_secs() >= 1,
+            Err(_) => false,
+        } {
+            let mut make_permanent = false;
+            if let Some(ref mut piece) = tetris.current_piece {
+                let x = piece.x;
+                let y = piece.y + 1;
+                make_permanent = !piece.change_position(&tetris.game_map, x, y);
+            }
+            if make_permanent {
+                tetris.make_permanent();
+            }
+            timer = SystemTime::now();
+        }
+
+        // draw the tetris grid here
+        if tetris.current_piece.is_none() {
+            let current_piece = create_new_tetrimino();
+            if !current_piece.test_current_position(&tetris.game_map) {
+                print_information(&tetris);
+                break
+            }
+            tetris.current_piece = Some(currrent_piece );
+        }
+
+        let mut quit = false;
+        if !handle_events(&mut tetris, &mut quit, &mut timer, &mut event_pump) {
+            if let Some(ref mut piece) = tetris.current_piece {
+                //draw the current tetrimino here
+            }
+        }
+
+        if quit {
+            print_game_informatio(&tetris);
+            break
+        }
+
+        // draw the game map here
+
         ::std::thread::sleep(Duration::new(0, 1_000_000_000u32 / 60));
     }
 }
