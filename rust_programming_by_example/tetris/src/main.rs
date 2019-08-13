@@ -3,9 +3,6 @@ extern crate sdl2;
 mod tetrimino;
 mod game_board;
 
-use game_board::Tetris;
-use game_board::LEVEL_TIMES;
-
 use sdl2::event::Event;
 use sdl2::image::{LoadTexture, INIT_JPG, INIT_PNG};
 use sdl2::keyboard::Keycode;
@@ -16,7 +13,12 @@ use std::time::{Duration, SystemTime};
 
 use std::fs::File;
 use std::io::{self, Read, Write};
-use crate::tetrimino::create_new_tetrimino;
+
+use tetrimino::create_new_tetrimino;
+use game_board::Tetris;
+use game_board::LEVEL_TIMES;
+
+const NB_HIGHSCORES: usize = 5;
 
 fn write_to_file(contents: String, file_name: &str) -> io::Result<()> {
     let mut f = File::create(file_name)?;
@@ -65,6 +67,23 @@ fn load_highscores_and_lines() -> Option<(Vec<u32>, Vec<u32>)> {
     } else {
         None
     }
+}
+
+fn update_vec(v: &mut Vec<u32>, value: u32) -> bool {
+    if v.len() < NB_HIGHSCORES {
+        v.push(value);
+        v.sort();
+        true
+    } else {
+        for entry in v.iter_mut() {
+            if value > *entry {
+                *entry = value;
+                return true;
+            }
+        }
+        false
+    }
+
 }
 
 fn handle_events(tetris: &mut Tetris, quit: &mut bool, timer: &mut SystemTime, event_pump: &mut sdl2::EventPump) -> bool {
@@ -119,9 +138,24 @@ fn handle_events(tetris: &mut Tetris, quit: &mut bool, timer: &mut SystemTime, e
 }
 
 fn print_information(tetris: &Tetris) {
+    let mut new_highest_highscore = true;
+    let mut new_highest_lines_sent = true;
+
+    if let Some((mut highscores, mut lines_sent)) = load_highscores_and_lines() {
+        new_highest_highscore = update_vec(&mut highscores, tetris.score);
+        new_highest_lines_sent = update_vec(&mut lines_sent, tetris.nb_lines);
+
+        if new_highest_lines_sent || new_highest_highscore {
+            save_highscores_and_lines(&highscores, &lines_sent);
+        }
+    } else {
+        save_highscores_and_lines(&[tetris.score], &[tetris.nb_lines]);
+    }
     println!("Game over!");
-    println!("Score:           {}", tetris.score);
-    println!("Number of lines: {}", tetris.nb_lines);
+    println!("Score:           {}{}", tetris.score
+                                    , if new_highest_highscore { " [NEW HIGHSCORE]" } else { "" });
+    println!("Number of lines: {}{}", tetris.nb_lines
+                                    , if new_highest_lines_sent { " [NEW HIGHSCORE]" } else { "" });
     println!("Current level:   {}", tetris.current_level);
 }
 
